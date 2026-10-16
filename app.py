@@ -8,10 +8,10 @@ import numpy as np
 
 st.set_page_config(page_title="Smart Complaint Classifier", page_icon="📨", layout="wide")
 st.title("📨 Smart Complaint Classification")
-st.caption("Complaint likho → AI sahi department/category batayega")
+st.caption("Type a complaint and the AI will predict the right category/department")
 
 # ---------- Data ----------
-up = st.sidebar.file_uploader("Apna dataset CSV upload karo (optional)", type="csv")
+up = st.sidebar.file_uploader("Upload your own dataset CSV (optional)", type="csv")
 df = pd.read_csv(up) if up else pd.read_csv("complaints.csv")
 text_col = st.sidebar.selectbox("Complaint text column", df.columns, index=list(df.columns).index("complaint") if "complaint" in df.columns else 0)
 label_col = st.sidebar.selectbox("Category column", df.columns, index=list(df.columns).index("category") if "category" in df.columns else len(df.columns)-1)
@@ -36,21 +36,21 @@ vec, models, res = train(df)
 tab1, tab2, tab3, tab4 = st.tabs(["🔮 Predict", "📊 Model Comparison", "🔑 Top Words", "🗂 Dataset"])
 
 with tab1:
-    choice = st.selectbox("Model chuno", list(models), index=0)
+    choice = st.selectbox("Choose a model", list(models), index=0)
     ex = "I returned the item two weeks ago but my refund has not been credited yet."
-    text = st.text_area("Complaint likho", ex, height=140)
-    if st.button("Classify karo", type="primary") and text.strip():
+    text = st.text_area("Enter a complaint", ex, height=140)
+    if st.button("Classify", type="primary") and text.strip():
         m = models[choice]; probs = m.predict_proba(vec.transform([text]))[0]
         order = np.argsort(probs)[::-1]
         st.success(f"Predicted Category: **{m.classes_[order[0]]}**  ({probs[order[0]]*100:.1f}% confidence)")
         st.bar_chart(pd.Series(probs, index=m.classes_).sort_values(ascending=False))
 
 with tab2:
-    st.subheader("Do models ki comparison (80/20 split)")
+    st.subheader("Model comparison (80/20 train-test split)")
     st.dataframe(pd.DataFrame({n: {k: f"{v:.3f}" for k, v in r.items() if k != "report"} for n, r in res.items()}).T)
     st.bar_chart(pd.DataFrame({n: {k: v for k, v in r.items() if k != "report"} for n, r in res.items()}).T)
     best = max(res, key=lambda n: res[n]["F1 (macro)"])
-    st.info(f"Best model (F1 ke hisaab se): **{best}**")
+    st.info(f"Best model (by macro F1): **{best}**")
 
 with tab3:
     lr = models["Logistic Regression"]; names = np.array(vec.get_feature_names_out())
